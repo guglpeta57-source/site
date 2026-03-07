@@ -7,13 +7,12 @@ from gigachat import GigaChat
 from gigachat.models import Chat, Messages, MessagesRole
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-here")
+app.secret_key = os.getenv("SECRET_KEY", "supersecretkey123")  # Обязательно измените в Railway!
 
-# Настройка PostgreSQL
+# Подключение к PostgreSQL
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL").replace("postgres://", "postgresql://", 1)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -31,16 +30,16 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-# Создаём таблицы (если не существуют)
+# Создание таблиц (если не существуют)
 with app.app_context():
     db.create_all()
 
-# Проверяем, что ключ API загружен
+# Проверка ключа GigaChat
 GIGACHAT_CREDENTIALS = os.getenv("GIGACHAT_CREDENTIALS")
 if not GIGACHAT_CREDENTIALS:
     raise ValueError("Не найден ключ API для GigaChat. Установите переменную окружения GIGACHAT_CREDENTIALS.")
 
-# История сообщений (в памяти для каждого пользователя)
+# История сообщений (для каждого пользователя)
 conversation_history = {}
 
 @app.route("/")
@@ -57,13 +56,12 @@ def register():
         return jsonify({"error": "Имя пользователя и пароль обязательны"}), 400
 
     if User.query.filter_by(username=username).first():
-        return jsonify({"error": "Это имя пользователя уже занято"}), 400
+        return jsonify({"error": "Пользователь с таким именем уже существует"}), 400
 
     new_user = User(username=username)
     new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
-
     return jsonify({"success": True})
 
 @app.route("/login", methods=["POST"])
@@ -78,7 +76,6 @@ def login():
 
     session["user_id"] = user.id
     session["username"] = user.username
-
     return jsonify({"success": True, "username": user.username})
 
 @app.route("/logout", methods=["POST"])
@@ -93,42 +90,6 @@ def check_auth():
         return jsonify({"authenticated": True, "username": session["username"]})
     return jsonify({"authenticated": False})
 
-@app.route("/profile", methods=["GET"])
-def profile():
-    if "user_id" not in session:
-        return jsonify({"error": "Не авторизован"}), 401
-
-    user = User.query.get(session["user_id"])
-    if not user:
-        return jsonify({"error": "Пользователь не найден"}), 404
-
-    return jsonify({
-        "id": user.id,
-        "username": user.username,
-        "created_at": user.created_at.isoformat() if user.created_at else None
-    })
-
-@app.route("/change_password", methods=["POST"])
-def change_password():
-    if "user_id" not in session:
-        return jsonify({"error": "Не авторизован"}), 401
-
-    data = request.json
-    old_password = data.get("old_password")
-    new_password = data.get("new_password")
-
-    if not old_password or not new_password:
-        return jsonify({"error": "Старый и новый пароль обязательны"}), 400
-
-    user = User.query.get(session["user_id"])
-    if not user or not user.check_password(old_password):
-        return jsonify({"error": "Неверный старый пароль"}), 401
-
-    user.set_password(new_password)
-    db.session.commit()
-
-    return jsonify({"success": True})
-
 @app.route("/ask", methods=["POST"])
 def ask_gigachat():
     if "user_id" not in session:
@@ -136,96 +97,38 @@ def ask_gigachat():
 
     data = request.json
     user_message = data.get("message")
-    bot_role = data.get("role", "Ты — учитель, который общается с учеником напрямую. \
-Отвечай на его вопросы понятно, кратко и по делу. \
-Если ученик просит объяснить тему — давай примеры и проверяй понимание. \
-Не имитируй диалог с другими учениками, общайся только с тем, кто тебе пишет.")
+    bot_role = data.get("role", "Ты — учитель, который общается с учеником напрямую. Отвечай понятно, кратко и по делу.")
 
     if not user_message:
-        return jsonify({"error": "Message is required"}), 400
+        return jsonify({"error": "Пустое сообщение"}), 400
 
-    # Обработка команд
+    # Простые команды
     if user_message.startswith("/help"):
-        return jsonify({
-            "answer": "📚 **Список команд:**\n\n"
-                      "/help — показать этот список\n"
-                      "/clear — очистить историю\n"
-                      "/subject [предмет] — сменить предмет (например, /subject физика)\n"
-                      "/example [тема] — попросить пример по теме (например, /example квадратные уравнения)"
-        })
-
-    elif user_message.startswith("/clear"):
+        return jsonify({"answer": "Доступные команды: /clear – очистить историю, /help – помощь"})
+    if user_message.startswith("/clear"):
         if session["user_id"] in conversation_history:
             conversation_history[session["user_id"]] = []
-        return jsonify({"answer": "🧹 История сообщений очищена!"})
-
-    elif user_message.startswith("/subject"):
-        subject = user_message[8:].strip()
-        if subject:
-            lines = bot_role.split('\n')
-            if len(lines) >= 3:
-                lines[2] = f"Сейчас ты ведёшь урок по предмету \"{subject}\" для 5 класса."
-                bot_role = '\n'.join(lines)
-                return jsonify({"answer": f"🔄 Предмет изменён на **{subject}**!"})
-        else:
-            return jsonify({"answer": "❌ Укажите предмет после команды. Пример: /subject физика"})
-
-    elif user_message.startswith("/example"):
-        topic = user_message[8:].strip()
-        if topic:
-            return jsonify({
-                "answer": f"💡 **Пример по теме \"{topic}\":**\n\n"
-                          f"(Здесь бот объяснит тему \"{topic}\" с примерами)"
-            })
-        else:
-            return jsonify({"answer": "❌ Укажите тему после команды. Пример: /example логарифмы"})
+        return jsonify({"answer": "История очищена"})
 
     try:
-        with GigaChat(
-            credentials=GIGACHAT_CREDENTIALS,
-            scope="GIGACHAT_API_PERS",
-            verify_ssl_certs=False
-        ) as giga:
-            messages = [
-                Messages(
-                    role=MessagesRole.SYSTEM,
-                    content=bot_role
-                )
-            ]
-
+        with GigaChat(credentials=GIGACHAT_CREDENTIALS, scope="GIGACHAT_API_PERS", verify_ssl_certs=False) as giga:
+            messages = [Messages(role=MessagesRole.SYSTEM, content=bot_role)]
             if session["user_id"] in conversation_history:
-                for msg in conversation_history[session["user_id"]]:
-                    messages.append(msg)
-
-            messages.append(
-                Messages(
-                    role=MessagesRole.USER,
-                    content=user_message
-                )
-            )
+                messages.extend(conversation_history[session["user_id"]])
+            messages.append(Messages(role=MessagesRole.USER, content=user_message))
 
             payload = Chat(messages=messages)
             response = giga.chat(payload)
 
+            # Сохраняем в историю
             if session["user_id"] not in conversation_history:
                 conversation_history[session["user_id"]] = []
-
-            conversation_history[session["user_id"]].append(
-                Messages(
-                    role=MessagesRole.USER,
-                    content=user_message
-                )
-            )
-            conversation_history[session["user_id"]].append(
-                Messages(
-                    role=MessagesRole.ASSISTANT,
-                    content=response.choices[0].message.content
-                )
-            )
+            conversation_history[session["user_id"]].append(Messages(role=MessagesRole.USER, content=user_message))
+            conversation_history[session["user_id"]].append(Messages(role=MessagesRole.ASSISTANT, content=response.choices[0].message.content))
 
             return jsonify({"answer": response.choices[0].message.content})
     except Exception as e:
-        return jsonify({"error": f"Ошибка: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/clear_history", methods=["POST"])
 def clear_history():
