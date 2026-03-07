@@ -10,7 +10,7 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js"
             onload="renderMathInElement(document.body);"></script>
-    <!-- Стили для модального окна -->
+    <!-- Стили для модальных окон -->
     <style>
         .modal {
             display: none;
@@ -52,25 +52,78 @@
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            margin: 5px;
         }
 
         .modal button:hover {
             background-color: #45a049;
         }
+
+        .modal button.secondary {
+            background-color: #f44336;
+        }
+
+        .modal button.secondary:hover {
+            background-color: #d32f2f;
+        }
+
+        .auth-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .user-info button {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <!-- Модальное окно для пароля -->
-    <div id="passwordModal" class="modal">
+    <!-- Модальное окно для входа/регистрации -->
+    <div id="authModal" class="modal">
         <div class="modal-content">
-            <h2>Доступ ограничен</h2>
-            <p>Пожалуйста, введите пароль:</p>
-            <input type="password" id="passwordInput" placeholder="Введите пароль">
-            <button onclick="checkPassword()">Войти</button>
+            <h2 id="authTitle">Вход</h2>
+            <input type="text" id="usernameInput" placeholder="Имя пользователя">
+            <input type="password" id="passwordInput" placeholder="Пароль">
+            <div class="auth-buttons">
+                <button onclick="login()">Войти</button>
+                <button onclick="showRegister()">Регистрация</button>
+            </div>
+            <button class="secondary" onclick="closeAuthModal()">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для регистрации -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <h2>Регистрация</h2>
+            <input type="text" id="newUsernameInput" placeholder="Имя пользователя">
+            <input type="password" id="newPasswordInput" placeholder="Пароль">
+            <div class="auth-buttons">
+                <button onclick="register()">Зарегистрироваться</button>
+                <button onclick="showLogin()">Вход</button>
+            </div>
+            <button class="secondary" onclick="closeAuthModal()">Отмена</button>
         </div>
     </div>
 
     <div class="container">
+        <!-- Информация о пользователе -->
+        <div class="user-info" id="userInfo" style="display: none;">
+            <span id="usernameDisplay"></span>
+            <button onclick="logout()">Выйти</button>
+        </div>
+
         <h1>Учебный бот</h1>
 
         <div class="content-wrapper">
@@ -170,27 +223,98 @@
 
     <!-- Скрипты -->
     <script>
-        // Пароль для доступа (замените на свой)
-        const correctPassword = "12345";
-
-        // Показываем модальное окно при загрузке страницы
+        // Проверяем, авторизован ли пользователь
         window.onload = function() {
-            const modal = document.getElementById("passwordModal");
-            modal.style.display = "block";
+            const user = localStorage.getItem('user');
+            if (!user) {
+                showAuthModal();
+            } else {
+                const userData = JSON.parse(user);
+                document.getElementById('userInfo').style.display = 'flex';
+                document.getElementById('usernameDisplay').textContent = `Вы вошли как: ${userData.username}`;
+                addWelcomeMessage();
+            }
         };
 
-        // Проверяем пароль
-        function checkPassword() {
-            const passwordInput = document.getElementById("passwordInput");
-            const modal = document.getElementById("passwordModal");
+        // Показываем модальное окно авторизации
+        function showAuthModal() {
+            const modal = document.getElementById('authModal');
+            modal.style.display = 'block';
+        }
 
-            if (passwordInput.value === correctPassword) {
-                modal.style.display = "none";
-                addWelcomeMessage(); // Добавляем приветственное сообщение
-            } else {
-                alert("Неверный пароль! Попробуйте ещё раз.");
-                passwordInput.value = "";
+        // Показываем модальное окно регистрации
+        function showRegister() {
+            document.getElementById('authTitle').textContent = 'Регистрация';
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('registerModal').style.display = 'block';
+        }
+
+        // Показываем модальное окно входа
+        function showLogin() {
+            document.getElementById('authModal').style.display = 'block';
+            document.getElementById('registerModal').style.display = 'none';
+        }
+
+        // Закрываем модальное окно
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('registerModal').style.display = 'none';
+        }
+
+        // Регистрация нового пользователя
+        function register() {
+            const username = document.getElementById('newUsernameInput').value.trim();
+            const password = document.getElementById('newPasswordInput').value.trim();
+
+            if (!username || !password) {
+                alert('Пожалуйста, заполните все поля.');
+                return;
             }
+
+            // Проверяем, существует ли пользователь
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (users[username]) {
+                alert('Это имя пользователя уже занято.');
+                return;
+            }
+
+            // Сохраняем нового пользователя
+            users[username] = password;
+            localStorage.setItem('users', JSON.stringify(users));
+            alert('Регистрация успешна! Теперь вы можете войти.');
+            showLogin();
+        }
+
+        // Вход пользователя
+        function login() {
+            const username = document.getElementById('usernameInput').value.trim();
+            const password = document.getElementById('passwordInput').value.trim();
+
+            if (!username || !password) {
+                alert('Пожалуйста, заполните все поля.');
+                return;
+            }
+
+            // Проверяем пользователя
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (!users[username] || users[username] !== password) {
+                alert('Неверное имя пользователя или пароль.');
+                return;
+            }
+
+            // Сохраняем данные пользователя в localStorage
+            localStorage.setItem('user', JSON.stringify({ username }));
+            document.getElementById('userInfo').style.display = 'flex';
+            document.getElementById('usernameDisplay').textContent = `Вы вошли как: ${username}`;
+            closeAuthModal();
+            addWelcomeMessage();
+        }
+
+        // Выход из аккаунта
+        function logout() {
+            localStorage.removeItem('user');
+            document.getElementById('userInfo').style.display = 'none';
+            showAuthModal();
         }
 
         // Функция для добавления приветственного сообщения
