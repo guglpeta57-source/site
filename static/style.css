@@ -221,43 +221,6 @@ h1 {
     font-family: monospace;
 }
 
-/* Адаптивные стили */
-@media (max-width: 768px) {
-    .content-wrapper {
-        flex-direction: column;
-    }
-
-    .role-column {
-        width: 100%;
-        margin-bottom: 15px;
-        border-right: none;
-    }
-
-    .chat {
-        max-height: 50vh;
-    }
-}
-
-@media (max-width: 480px) {
-    .container {
-        width: 98%;
-        padding: 10px;
-    }
-
-    .input-area {
-        flex-direction: column;
-    }
-
-    .input-area button {
-        width: 100%;
-        margin-top: 8px;
-    }
-
-    .chat div {
-        max-width: 95%;
-    }
-}
-
 /* Стили для QR-кода */
 .qr-section {
     display: flex;
@@ -283,8 +246,144 @@ h1 {
     text-align: center;
 }
 
-/* Адаптивность для QR-кода */
+/* Стили для модального окна */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background-color: var(--white);
+    margin: 10% auto;
+    padding: 25px;
+    border: none;
+    width: 90%;
+    max-width: 400px;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Табы */
+.modal-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--light-gray);
+    padding-bottom: 10px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 8px;
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    background-color: #f0f4fa;
+}
+
+.tab-btn:hover {
+    background-color: var(--light-gray);
+}
+
+/* Формы внутри модального окна */
+.auth-form {
+    display: none;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.auth-form.active {
+    display: flex;
+}
+
+.auth-form input {
+    padding: 14px 16px;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    font-size: 15px;
+    transition: border-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.auth-form input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+}
+
+.auth-submit {
+    padding: 14px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.auth-submit:hover {
+    background-color: var(--secondary-color);
+}
+
+.modal-close {
+    width: 100%;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 5px;
+}
+
+.modal-close:hover {
+    background-color: #e9ecef;
+}
+
+/* Адаптивные стили */
 @media (max-width: 768px) {
+    .content-wrapper {
+        flex-direction: column;
+    }
+
+    .role-column {
+        width: 100%;
+        margin-bottom: 15px;
+        border-right: none;
+    }
+
+    .chat {
+        max-height: 50vh;
+    }
+
     .qr-section {
         margin-top: 10px;
     }
@@ -292,5 +391,25 @@ h1 {
     .qr-code {
         width: 100px;
         height: 100px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        width: 98%;
+        padding: 10px;
+    }
+
+    .input-area {
+        flex-direction: column;
+    }
+
+    .input-area button {
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .chat div {
+        max-width: 95%;
     }
 }
