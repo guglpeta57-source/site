@@ -1,6 +1,8 @@
 import os
+from datetime import datetime
 from flask import Flask, request, jsonify, render_template, session
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 from gigachat import GigaChat
 from gigachat.models import Chat, Messages, MessagesRole
 from dotenv import load_dotenv
@@ -20,9 +22,16 @@ db = SQLAlchemy(app)
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password = db.Column(db.String(120), nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# Создаём таблицы (выполняется один раз)
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+# Создаём таблицы (если не существуют)
 with app.app_context():
     db.create_all()
 
@@ -31,7 +40,7 @@ GIGACHAT_CREDENTIALS = os.getenv("GIGACHAT_CREDENTIALS")
 if not GIGACHAT_CREDENTIALS:
     raise ValueError("Не найден ключ API для GigaChat. Установите переменную окружения GIGACHAT_CREDENTIALS.")
 
-# История сообщений
+# История сообщений (в памяти для каждого пользователя)
 conversation_history = {}
 
 @app.route("/")
@@ -50,7 +59,8 @@ def register():
     if User.query.filter_by(username=username).first():
         return jsonify({"error": "Это имя пользователя уже занято"}), 400
 
-    new_user = User(username=username, password=password)
+    new_user = User(username=username)
+    new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
 
@@ -62,8 +72,8 @@ def login():
     username = data.get("username")
     password = data.get("password")
 
-    user = User.query.filter_by(username=username, password=password).first()
-    if not user:
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.check_password(password):
         return jsonify({"error": "Неверное имя пользователя или пароль"}), 401
 
     session["user_id"] = user.id
@@ -81,8 +91,43 @@ def logout():
 def check_auth():
     if "user_id" in session:
         return jsonify({"authenticated": True, "username": session["username"]})
-    else:
-        return jsonify({"authenticated": False})
+    return jsonify({"authenticated": False})
+
+@app.route("/profile", methods=["GET"])
+def profile():
+    if "user_id" not in session:
+        return jsonify({"error": "Не авторизован"}), 401
+
+    user = User.query.get(session["user_id"])
+    if not user:
+        return jsonify({"error": "Пользователь не найден"}), 404
+
+    return jsonify({
+        "id": user.id,
+        "username": user.username,
+        "created_at": user.created_at.isoformat() if user.created_at else None
+    })
+
+@app.route("/change_password", methods=["POST"])
+def change_password():
+    if "user_id" not in session:
+        return jsonify({"error": "Не авторизован"}), 401
+
+    data = request.json
+    old_password = data.get("old_password")
+    new_password = data.get("new_password")
+
+    if not old_password or not new_password:
+        return jsonify({"error": "Старый и новый пароль обязательны"}), 400
+
+    user = User.query.get(session["user_id"])
+    if not user or not user.check_password(old_password):
+        return jsonify({"error": "Неверный старый пароль"}), 401
+
+    user.set_password(new_password)
+    db.session.commit()
+
+    return jsonify({"success": True})
 
 @app.route("/ask", methods=["POST"])
 def ask_gigachat():
