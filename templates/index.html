@@ -5,82 +5,74 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Учебный бот</title>
     <link rel="stylesheet" href="/static/style.css">
-    <!-- Подключаем KaTeX -->
+    <!-- Подключение KaTeX -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js"
             onload="renderMathInElement(document.body);"></script>
+    <style>
+        /* Стили для модального окна */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .modal-content button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .modal-content button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
+    <!-- Модальное окно для ввода пароля -->
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <h3>Введите пароль</h3>
+            <input type="password" id="passwordInput" placeholder="Пароль">
+            <button onclick="checkPassword()">Войти</button>
+        </div>
+    </div>
+
     <div class="container">
         <h1>Учебный бот</h1>
 
         <div class="content-wrapper">
             <!-- Колонка с настройками -->
             <div class="role-column">
-                <h3>Настройки</h3>
-
-                <!-- Выбор предмета -->
-                <div class="select-group">
-                    <label for="subject">Предмет:</label>
-                    <select id="subject" onchange="updateBotRole()">
-                        <option value="математика">Математика</option>
-                        <option value="русский язык">Русский язык</option>
-                        <option value="физика">Физика</option>
-                        <option value="химия">Химия</option>
-                        <option value="биология">Биология</option>
-                        <option value="история">История</option>
-                        <option value="информатика">Информатика</option>
-                        <option value="английский язык">Английский язык</option>
-                    </select>
-                </div>
-
-                <!-- Выбор класса -->
-                <div class="select-group">
-                    <label for="grade">Класс:</label>
-                    <select id="grade" onchange="updateBotRole()">
-                        <option value="5">5 класс</option>
-                        <option value="6">6 класс</option>
-                        <option value="7">7 класс</option>
-                        <option value="8">8 класс</option>
-                        <option value="9">9 класс</option>
-                        <option value="10">10 класс</option>
-                        <option value="11">11 класс</option>
-                    </select>
-                </div>
-
-                <!-- Скрытое поле для роли -->
-                <textarea id="bot-role" style="display: none;">Ты — опытный учитель математики для 5 класса.
-**Твоя задача:** помочь ученику разобраться в теме, которую он назовёт.
-
-**Правила общения:**
-1. **Сначала спроси ученика**, какую тему он хочет изучить.
-   Пример: *"Какую тему по математике ты хочешь разобрать сегодня?"*
-
-2. **Когда тема названа**, задавай уточняющие вопросы, чтобы понять уровень ученика.
-   Пример: *"Ты уже знаешь, как складывать дроби, или нужно начать с основ?"*
-
-3. **Объясняй тему по шагам**, используя простые примеры.
-   Пример: *"Чтобы сложить дроби 1/8 и 3/8, нужно сложить числители: 1 + 3 = 4, а знаменатель оставить 8. Получается 4/8, что можно сократить до 1/2."*
-
-4. **Добивайся понимания**, задавая наводящие вопросы.
-   Пример: *"Как ты думаешь, почему здесь знаменатель не меняется?"*
-
-5. **Если ученик не знает ответ**, давай подсказки, но не говори ответ сразу.
-   Пример: *"Подсказка: вспомни, как складываются числители у дробей с одинаковым знаменателем."*
-
-6. **Если ученик сдаётся**, объясни тему с нуля и проверь понимание.
-   Пример: *"Давай разберём по шагам: 1) Складываем числители, 2) Знаменатель оставляем без изменений. Понятно?"*
-
-7. **Дроби пиши в формате `a/b`** (например, `1/8`).
-   Пример: *"Сложи дроби: 1/8 + 3/8."*
-
-8. **Не имитируй диалог**, общайся напрямую с учеником.
-   Пример: *"Ты понял, как это работает?"* (вместо *"Ученик: Да. Учитель: Отлично!"*)
-
-**Сейчас ты ведёшь урок по предмету "математика" для 5 класса.**
-</textarea>
-
+                <!-- Настройки -->
             </div>
 
             <!-- Колонка с чатом -->
@@ -96,38 +88,52 @@
                     <button onclick="sendMessage()">Отправить</button>
                     <button onclick="clearChat()" style="background: #ff6b6b;">Очистить чат</button>
                 </div>
-
-                <!-- Блок с QR-кодом -->
+                <!-- QR-код -->
                 <div class="qr-section">
-                    <img src="{{ url_for('static', filename='qr.png') }}" alt="QR-код" class="qr-code">
+                    <img src="{{ url_for('static', filename='qr.png') }}" alt="QR-код" class="qr-code" onerror="this.src='https://via.placeholder.com/150/000000/FFFFFF?text=QR'">
                     <p class="qr-caption">Попробуйте на своём устройстве</p>
-                </div>
-
-                <!-- Подсказка о командах -->
-                <div class="commands-hint">
-                    <p>💡 <strong>Подсказка:</strong> Попробуйте команды: <code>/help</code>, <code>/clear</code>, <code>/subject физика</code>, <code>/example квадратные уравнения</code></p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Скрипт для приветственного сообщения -->
+    <!-- Подсказка о командах -->
+    <div class="commands-hint">
+        <p>💡 <strong>Подсказка:</strong> Попробуйте команды: <code>/help</code>, <code>/clear</code>, <code>/subject физика</code>, <code>/example квадратные уравнения</code></p>
+    </div>
+
     <script>
-        // Функция для добавления приветственного сообщения
-        function addWelcomeMessage() {
-            const chat = document.getElementById("chat");
-            chat.innerHTML += `
-                <div class="teacher-message">
-                    <b>Учитель:</b>
-                    Добро пожаловать в универсального бота для обучения!
-                    Напишите мне, какую тему вы хотите изучить.
-                </div>
-            `;
-            chat.scrollTop = chat.scrollHeight;
+        // Пароль для доступа (можно изменить)
+        const correctPassword = "12345";
+
+        // Проверяем, авторизован ли пользователь
+        window.onload = function() {
+            const isAuthorized = localStorage.getItem("authorized");
+            if (!isAuthorized) {
+                document.getElementById("passwordModal").style.display = "block";
+            } else {
+                showWelcomeMessage();
+            }
+        };
+
+        // Проверка пароля
+        function checkPassword() {
+            const password = document.getElementById("passwordInput").value;
+            if (password === correctPassword) {
+                localStorage.setItem("authorized", "true");
+                document.getElementById("passwordModal").style.display = "none";
+                showWelcomeMessage();
+            } else {
+                alert("Неверный пароль!");
+            }
         }
 
-        // Вызываем функцию при загрузке страницы
-        window.onload = addWelcomeMessage;
+        // Приветственное сообщение
+        function showWelcomeMessage() {
+            const chat = document.getElementById("chat");
+            chat.innerHTML += `<div class="teacher-message"><b>Учебный бот:</b> Добро пожаловать в универсального бота для обучения! Какую тему вы хотите изучить?</div>`;
+            renderMathInElement(chat);
+        }
 
         // Обновляем роль бота при изменении предмета/класса
         function updateBotRole() {
@@ -135,7 +141,6 @@
             const grade = document.getElementById("grade").value;
             const roleTextarea = document.getElementById("bot-role");
 
-            // Ищем строку с предметом и классом и обновляем её
             const lines = roleTextarea.value.split('\n');
             for (let i = 0; i < lines.length; i++) {
                 if (lines[i].includes("Сейчас ты ведёшь урок по предмету")) {
@@ -162,7 +167,6 @@
             const botRole = document.getElementById("bot-role").value.trim();
             const chat = document.getElementById("chat");
 
-            // Добавляем сообщение пользователя
             chat.innerHTML += `<div class="user-message"><b>Вы:</b> ${message}</div>`;
             messageInput.value = "";
 
@@ -180,9 +184,8 @@
                 if (data.error) {
                     chat.innerHTML += `<div class="teacher-message"><b>Ошибка:</b> ${data.error}</div>`;
                 } else {
-                    // Добавляем ответ бота и рендерим формулы
-                    chat.innerHTML += `<div class="teacher-message"><b>Учитель:</b> ${data.answer}</div>`;
-                    renderMathInElement(chat); // Рендерим формулы после добавления сообщения
+                    chat.innerHTML += `<div class="teacher-message"><b>Учебный бот:</b> ${data.answer}</div>`;
+                    renderMathInElement(chat);
                 }
                 chat.scrollTop = chat.scrollHeight;
             } catch (error) {
@@ -193,9 +196,8 @@
         // Функция для очистки чата
         function clearChat() {
             const chat = document.getElementById("chat");
-            chat.innerHTML = "";
-            // Добавляем приветственное сообщение снова
-            addWelcomeMessage();
+            chat.innerHTML = `<div class="teacher-message"><b>Учебный бот:</b> Добро пожаловать в универсального бота для обучения! Какую тему вы хотите изучить?</div>`;
+            renderMathInElement(chat);
         }
     </script>
 </body>
