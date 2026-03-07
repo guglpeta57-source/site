@@ -90,6 +90,37 @@ def check_auth():
         return jsonify({"authenticated": True, "username": session["username"]})
     return jsonify({"authenticated": False})
 
+# ----- Новые маршруты для профиля -----
+@app.route("/profile")
+def profile():
+    if "user_id" not in session:
+        return jsonify({"error": "Не авторизован"}), 401
+    user = User.query.get(session["user_id"])
+    if not user:
+        return jsonify({"error": "Пользователь не найден"}), 404
+    return jsonify({
+        "id": user.id,
+        "username": user.username,
+        "created_at": user.created_at.isoformat() if user.created_at else None
+    })
+
+@app.route("/change_password", methods=["POST"])
+def change_password():
+    if "user_id" not in session:
+        return jsonify({"error": "Не авторизован"}), 401
+    data = request.json
+    old_password = data.get("old_password")
+    new_password = data.get("new_password")
+    if not old_password or not new_password:
+        return jsonify({"error": "Старый и новый пароль обязательны"}), 400
+    user = User.query.get(session["user_id"])
+    if not user or not user.check_password(old_password):
+        return jsonify({"error": "Неверный старый пароль"}), 401
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({"success": True})
+# --------------------------------------
+
 @app.route("/ask", methods=["POST"])
 def ask_gigachat():
     if "user_id" not in session:
