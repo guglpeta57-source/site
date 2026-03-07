@@ -9,26 +9,30 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <!-- Модальное окно входа/регистрации -->
-    <div id="authModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-tabs">
-                <button class="tab-btn active" id="loginTabBtn" onclick="switchTab('login')">Вход</button>
-                <button class="tab-btn" id="registerTabBtn" onclick="switchTab('register')">Регистрация</button>
-            </div>
-            <div id="loginForm" class="auth-form active">
-                <input type="text" id="loginUsername" placeholder="Имя пользователя">
-                <input type="password" id="loginPassword" placeholder="Пароль">
-                <button class="auth-submit" onclick="login()">Войти</button>
-            </div>
-            <div id="registerForm" class="auth-form">
-                <input type="text" id="regUsername" placeholder="Имя пользователя">
-                <input type="password" id="regPassword" placeholder="Пароль">
-                <button class="auth-submit" onclick="register()">Зарегистрироваться</button>
-            </div>
-            <button class="modal-close" onclick="closeModal()">Закрыть</button>
+    <!-- Модальное окно профиля -->
+<div id="profileModal" class="modal">
+    <div class="modal-content">
+        <h2>Профиль</h2>
+        <div class="profile-info">
+            <p><strong>ID:</strong> <span id="profileId"></span></p>
+            <p><strong>Имя пользователя:</strong> <span id="profileUsername"></span></p>
+            <p><strong>Дата регистрации:</strong> <span id="profileCreatedAt"></span></p>
+        </div>
+
+        <h3>Смена пароля</h3>
+        <div class="profile-password-form">
+            <input type="password" id="oldPasswordInput" placeholder="Старый пароль">
+            <input type="password" id="newPasswordInput" placeholder="Новый пароль">
+            <input type="password" id="confirmPasswordInput" placeholder="Подтвердите новый пароль">
+            <button class="auth-submit" onclick="changePassword()">Изменить пароль</button>
+        </div>
+
+        <div class="profile-actions">
+            <button class="modal-close" onclick="logout()">Выйти</button>
+            <button class="modal-close" onclick="closeProfileModal()">Закрыть</button>
         </div>
     </div>
+</div>
 
     <div class="container">
         <div class="top-bar">
@@ -174,3 +178,4 @@
     </script>
 </body>
 </html>
+
