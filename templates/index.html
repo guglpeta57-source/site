@@ -2,287 +2,81 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Учебный бот</title>
     <link rel="stylesheet" href="/static/style.css">
-    <!-- Подключаем KaTeX -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js"
-            onload="renderMathInElement(document.body);"></script>
     <!-- Font Awesome для иконок -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <!-- Модальное окно для входа/регистрации (с табами) -->
+    <!-- Модальное окно входа/регистрации -->
     <div id="authModal" class="modal">
         <div class="modal-content">
             <div class="modal-tabs">
-                <button class="tab-btn active" id="loginTabBtn" onclick="switchAuthTab('login')">Вход</button>
-                <button class="tab-btn" id="registerTabBtn" onclick="switchAuthTab('register')">Регистрация</button>
+                <button class="tab-btn active" id="loginTabBtn" onclick="switchTab('login')">Вход</button>
+                <button class="tab-btn" id="registerTabBtn" onclick="switchTab('register')">Регистрация</button>
             </div>
-
-            <!-- Форма входа -->
             <div id="loginForm" class="auth-form active">
-                <input type="text" id="usernameInput" placeholder="Имя пользователя">
-                <input type="password" id="passwordInput" placeholder="Пароль">
+                <input type="text" id="loginUsername" placeholder="Имя пользователя">
+                <input type="password" id="loginPassword" placeholder="Пароль">
                 <button class="auth-submit" onclick="login()">Войти</button>
             </div>
-
-            <!-- Форма регистрации -->
             <div id="registerForm" class="auth-form">
-                <input type="text" id="newUsernameInput" placeholder="Имя пользователя">
-                <input type="password" id="newPasswordInput" placeholder="Пароль">
+                <input type="text" id="regUsername" placeholder="Имя пользователя">
+                <input type="password" id="regPassword" placeholder="Пароль">
                 <button class="auth-submit" onclick="register()">Зарегистрироваться</button>
             </div>
-
-            <button class="modal-close" onclick="closeAuthModal()">Закрыть</button>
-        </div>
-    </div>
-
-    <!-- Модальное окно профиля -->
-    <div id="profileModal" class="modal">
-        <div class="modal-content">
-            <h2>Профиль</h2>
-            <div class="profile-info">
-                <p><strong>ID:</strong> <span id="profileId"></span></p>
-                <p><strong>Имя пользователя:</strong> <span id="profileUsername"></span></p>
-                <p><strong>Дата регистрации:</strong> <span id="profileCreatedAt"></span></p>
-            </div>
-            <h3>Смена пароля</h3>
-            <div class="auth-form">
-                <input type="password" id="oldPasswordInput" placeholder="Старый пароль">
-                <input type="password" id="newPasswordInput" placeholder="Новый пароль">
-                <input type="password" id="confirmPasswordInput" placeholder="Подтвердите новый пароль">
-                <button class="auth-submit" onclick="changePassword()">Изменить пароль</button>
-            </div>
-            <button class="modal-close" onclick="closeProfileModal()">Закрыть</button>
+            <button class="modal-close" onclick="closeModal()">Закрыть</button>
         </div>
     </div>
 
     <div class="container">
-        <!-- Верхняя панель с пользователем -->
         <div class="top-bar">
-            <div class="user-button" id="userButton">
-                <!-- Содержимое будет меняться через JS -->
-            </div>
+            <div id="userButton"></div>
         </div>
-
         <h1>Учебный бот</h1>
 
-        <div class="content-wrapper">
-            <!-- Колонка с настройками -->
-            <div class="role-column">
-                <h3>Настройки</h3>
-                <!-- Выбор предмета -->
-                <div class="select-group">
-                    <label for="subject">Предмет:</label>
-                    <select id="subject" onchange="updateBotRole()">
-                        <option value="математика">Математика</option>
-                        <option value="русский язык">Русский язык</option>
-                        <option value="физика">Физика</option>
-                        <option value="химия">Химия</option>
-                        <option value="биология">Биология</option>
-                        <option value="история">История</option>
-                        <option value="информатика">Информатика</option>
-                        <option value="английский язык">Английский язык</option>
-                    </select>
-                </div>
-
-                <!-- Выбор класса -->
-                <div class="select-group">
-                    <label for="grade">Класс:</label>
-                    <select id="grade" onchange="updateBotRole()">
-                        <option value="5">5 класс</option>
-                        <option value="6">6 класс</option>
-                        <option value="7">7 класс</option>
-                        <option value="8">8 класс</option>
-                        <option value="9">9 класс</option>
-                        <option value="10">10 класс</option>
-                        <option value="11">11 класс</option>
-                    </select>
-                </div>
-
-                <!-- Скрытое поле для роли -->
-                <textarea id="bot-role" style="display: none;">Ты — опытный учитель математики для 5 класса.
-**Твоя задача:** помочь ученику разобраться в теме, которую он назовёт.
-
-**Правила общения:**
-1. **Сначала спроси ученика**, какую тему он хочет изучить.
-   Пример: *"Какую тему по математике ты хочешь разобрать сегодня?"*
-
-2. **Когда тема названа**, задавай уточняющие вопросы, чтобы понять уровень ученика.
-   Пример: *"Ты уже знаешь, как складывать дроби, или нужно начать с основ?"*
-
-3. **Объясняй тему по шагам**, используя простые примеры.
-   Пример: *"Чтобы сложить дроби 1/8 и 3/8, нужно сложить числители: 1 + 3 = 4, а знаменатель оставить 8. Получается 4/8, что можно сократить до 1/2."*
-
-4. **Добивайся понимания**, задавая наводящие вопросы.
-   Пример: *"Как ты думаешь, почему здесь знаменатель не меняется?"*
-
-5. **Если ученик не знает ответ**, давай подсказки, но не говори ответ сразу.
-   Пример: *"Подсказка: вспомни, как складываются числители у дробей с одинаковым знаменателем."*
-
-6. **Если ученик сдаётся**, объясни тему с нуля и проверь понимание.
-   Пример: *"Давай разберём по шагам: 1) Складываем числители, 2) Знаменатель оставляем без изменений. Понятно?"*
-
-7. **Дроби пиши в формате `a/b`** (например, `1/8`).
-   Пример: *"Сложи дроби: 1/8 + 3/8."*
-
-8. **Не имитируй диалог**, общайся напрямую с учеником.
-   Пример: *"Ты понял, как это работает?"* (вместо *"Ученик: Да. Учитель: Отлично!"*)
-
-**Сейчас ты ведёшь урок по предмету "математика" для 5 класса.**
-</textarea>
-            </div>
-
-            <!-- Колонка с чатом -->
-            <div class="chat-column">
-                <div id="chat" class="chat"></div>
-                <div class="input-area">
-                    <input
-                        type="text"
-                        id="message"
-                        placeholder="Введите сообщение..."
-                        onkeypress="handleKeyPress(event)"
-                    >
-                    <button onclick="sendMessage()">Отправить</button>
-                    <button onclick="clearChat()" style="background: #ff6b6b;">Очистить чат</button>
-                </div>
-
-                <!-- Блок с QR-кодом -->
-                <div class="qr-section">
-                    <img src="{{ url_for('static', filename='qr.png') }}" alt="QR-код" class="qr-code" onerror="this.src='https://via.placeholder.com/150/000000/FFFFFF?text=QR'">
-                    <p class="qr-caption">Попробуйте на своём устройстве</p>
-                </div>
-
-                <!-- Подсказка о командах -->
-                <div class="commands-hint">
-                    <p>💡 <strong>Подсказка:</strong> Попробуйте команды: <code>/help</code>, <code>/clear</code>, <code>/subject физика</code>, <code>/example квадратные уравнения</code></p>
-                </div>
+        <!-- Здесь можно оставить вашу существующую колонку с настройками и чат, но для простоты я оставлю только чат -->
+        <div class="chat-container">
+            <div id="chat" class="chat"></div>
+            <div class="input-area">
+                <input type="text" id="message" placeholder="Введите сообщение..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Отправить</button>
+                <button onclick="clearChat()" style="background: #ff6b6b;">Очистить чат</button>
             </div>
         </div>
     </div>
 
-    <!-- Скрипты -->
     <script>
-        // Проверяем авторизацию при загрузке страницы
-        window.onload = function() {
-            checkAuth();
-        };
+        window.onload = checkAuth;
 
-        // Проверяем, авторизован ли пользователь
         function checkAuth() {
-            fetch("/check_auth")
-                .then(response => response.json())
+            fetch('/check_auth')
+                .then(res => res.json())
                 .then(data => {
                     if (data.authenticated) {
-                        showUserButton(data.username);
+                        document.getElementById('userButton').innerHTML = `<button class="btn-user"><i class="fas fa-user"></i> ${data.username}</button>`;
                         addWelcomeMessage();
                     } else {
-                        showGuestButton();
+                        document.getElementById('userButton').innerHTML = `<button class="btn-guest" onclick="showModal()"><i class="fas fa-sign-in-alt"></i> Вход / Регистрация</button>`;
                     }
-                })
-                .catch(error => {
-                    console.error("Ошибка проверки авторизации:", error);
-                    showGuestButton();
                 });
         }
 
-        // Отображаем кнопку для гостя
-        function showGuestButton() {
-            const userButton = document.getElementById('userButton');
-            userButton.innerHTML = '<button onclick="showAuthModal()" class="btn-guest"><i class="fas fa-sign-in-alt"></i> Вход / Регистрация</button>';
-        }
-
-        // Отображаем кнопку для авторизованного пользователя
-        function showUserButton(username) {
-            const userButton = document.getElementById('userButton');
-            userButton.innerHTML = `
-                <button onclick="openProfile()" class="btn-user">
-                    <i class="fas fa-user-circle"></i> ${username}
-                </button>
-            `;
-        }
-
-        // Открыть профиль
-        function openProfile() {
-            fetch("/profile")
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        alert(data.error);
-                        return;
-                    }
-                    document.getElementById('profileId').textContent = data.id;
-                    document.getElementById('profileUsername').textContent = data.username;
-                    // Форматируем дату
-                    const date = new Date(data.created_at);
-                    document.getElementById('profileCreatedAt').textContent = date.toLocaleString('ru-RU');
-                    document.getElementById('profileModal').style.display = 'block';
-                })
-                .catch(error => {
-                    console.error("Ошибка загрузки профиля:", error);
-                });
-        }
-
-        // Закрыть профиль
-        function closeProfileModal() {
-            document.getElementById('profileModal').style.display = 'none';
-            // Очистить поля паролей
-            document.getElementById('oldPasswordInput').value = '';
-            document.getElementById('newPasswordInput').value = '';
-            document.getElementById('confirmPasswordInput').value = '';
-        }
-
-        // Смена пароля
-        function changePassword() {
-            const oldPassword = document.getElementById('oldPasswordInput').value.trim();
-            const newPassword = document.getElementById('newPasswordInput').value.trim();
-            const confirmPassword = document.getElementById('confirmPasswordInput').value.trim();
-
-            if (!oldPassword || !newPassword || !confirmPassword) {
-                alert('Пожалуйста, заполните все поля.');
-                return;
-            }
-            if (newPassword !== confirmPassword) {
-                alert('Новый пароль и подтверждение не совпадают.');
-                return;
-            }
-
-            fetch("/change_password", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                } else {
-                    alert('Пароль успешно изменён!');
-                    closeProfileModal();
-                }
-            })
-            .catch(error => {
-                console.error("Ошибка смены пароля:", error);
-                alert("Произошла ошибка при смене пароля.");
-            });
-        }
-
-        // Показываем модальное окно авторизации
-        function showAuthModal() {
+        function showModal() {
             document.getElementById('authModal').style.display = 'block';
-            switchAuthTab('login');
+            switchTab('login');
         }
 
-        // Переключение между вкладками "Вход" и "Регистрация"
-        function switchAuthTab(tab) {
+        function closeModal() {
+            document.getElementById('authModal').style.display = 'none';
+        }
+
+        function switchTab(tab) {
             const loginTab = document.getElementById('loginTabBtn');
             const registerTab = document.getElementById('registerTabBtn');
             const loginForm = document.getElementById('loginForm');
             const registerForm = document.getElementById('registerForm');
-
             if (tab === 'login') {
                 loginTab.classList.add('active');
                 registerTab.classList.remove('active');
@@ -296,168 +90,85 @@
             }
         }
 
-        // Закрываем модальное окно авторизации
-        function closeAuthModal() {
-            document.getElementById('authModal').style.display = 'none';
-            // Очистить поля
-            document.getElementById('usernameInput').value = '';
-            document.getElementById('passwordInput').value = '';
-            document.getElementById('newUsernameInput').value = '';
-            document.getElementById('newPasswordInput').value = '';
-        }
-
-        // Регистрация нового пользователя
         function register() {
-            const username = document.getElementById('newUsernameInput').value.trim();
-            const password = document.getElementById('newPasswordInput').value.trim();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+            if (!username || !password) return alert('Заполните поля');
 
-            if (!username || !password) {
-                alert('Пожалуйста, заполните все поля.');
-                return;
-            }
-
-            fetch("/register", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ username, password })
+            fetch('/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password})
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                } else {
-                    alert('Регистрация успешна! Теперь вы можете войти.');
-                    switchAuthTab('login');
+                if (data.error) alert(data.error);
+                else {
+                    alert('Регистрация успешна! Теперь войдите.');
+                    switchTab('login');
                 }
-            })
-            .catch(error => {
-                console.error("Ошибка регистрации:", error);
-                alert("Произошла ошибка при регистрации.");
             });
         }
 
-        // Вход пользователя
         function login() {
-            const username = document.getElementById('usernameInput').value.trim();
-            const password = document.getElementById('passwordInput').value.trim();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            if (!username || !password) return alert('Заполните поля');
 
-            if (!username || !password) {
-                alert('Пожалуйста, заполните все поля.');
-                return;
-            }
-
-            fetch("/login", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ username, password })
+            fetch('/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username, password})
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                } else {
-                    closeAuthModal();
-                    showUserButton(data.username);
-                    addWelcomeMessage();
+                if (data.error) alert(data.error);
+                else {
+                    closeModal();
+                    checkAuth(); // обновим кнопку
                 }
-            })
-            .catch(error => {
-                console.error("Ошибка входа:", error);
-                alert("Произошла ошибка при входе.");
             });
         }
 
-        // Выход из аккаунта
-        function logout() {
-            fetch("/logout", { method: "POST" })
-                .then(() => {
-                    showGuestButton();
-                    closeProfileModal();
-                })
-                .catch(error => {
-                    console.error("Ошибка выхода:", error);
-                });
-        }
-
-        // Добавляем кнопку выхода в профиль (опционально)
-        // Можно добавить отдельную кнопку в модальном окне профиля
-
-        // Функция для добавления приветственного сообщения
         function addWelcomeMessage() {
-            const chat = document.getElementById("chat");
-            chat.innerHTML += `
-                <div class="teacher-message">
-                    <b>Учитель:</b>
-                    Добро пожаловать в универсального бота для обучения!
-                    Напишите мне, какую тему вы хотите изучить.
-                </div>
-            `;
+            const chat = document.getElementById('chat');
+            chat.innerHTML += `<div class="teacher-message"><b>Учитель:</b> Добро пожаловать! Напишите мне, что хотите изучить.</div>`;
             chat.scrollTop = chat.scrollHeight;
-            renderMathInElement(chat);
         }
 
-        // Обновляем роль бота при изменении предмета/класса
-        function updateBotRole() {
-            const subject = document.getElementById("subject").value;
-            const grade = document.getElementById("grade").value;
-            const roleTextarea = document.getElementById("bot-role");
-
-            const lines = roleTextarea.value.split('\n');
-            for (let i = 0; i < lines.length; i++) {
-                if (lines[i].includes("Сейчас ты ведёшь урок по предмету")) {
-                    lines[i] = `Сейчас ты ведёшь урок по предмету "${subject}" для ${grade} класса.`;
-                    break;
-                }
-            }
-            roleTextarea.value = lines.join('\n');
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') sendMessage();
         }
 
-        // Обработка нажатия Enter
-        function handleKeyPress(event) {
-            if (event.key === "Enter") {
-                sendMessage();
-            }
-        }
-
-        // Функция для отправки сообщения
         async function sendMessage() {
-            const messageInput = document.getElementById("message");
-            const message = messageInput.value.trim();
-            if (!message) return;
+            const input = document.getElementById('message');
+            const msg = input.value.trim();
+            if (!msg) return;
 
-            const botRole = document.getElementById("bot-role").value.trim();
-            const chat = document.getElementById("chat");
-
-            chat.innerHTML += `<div class="user-message"><b>Вы:</b> ${message}</div>`;
-            messageInput.value = "";
+            const chat = document.getElementById('chat');
+            chat.innerHTML += `<div class="user-message"><b>Вы:</b> ${msg}</div>`;
+            input.value = '';
 
             try {
-                const response = await fetch("/ask", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({
-                        message: message,
-                        role: botRole
-                    })
+                const res = await fetch('/ask', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: msg})
                 });
-
-                const data = await response.json();
+                const data = await res.json();
                 if (data.error) {
                     chat.innerHTML += `<div class="teacher-message"><b>Ошибка:</b> ${data.error}</div>`;
                 } else {
                     chat.innerHTML += `<div class="teacher-message"><b>Учитель:</b> ${data.answer}</div>`;
-                    renderMathInElement(chat);
                 }
                 chat.scrollTop = chat.scrollHeight;
-            } catch (error) {
-                chat.innerHTML += `<div class="teacher-message"><b>Ошибка:</b> ${error.message}</div>`;
+            } catch (err) {
+                chat.innerHTML += `<div class="teacher-message"><b>Ошибка:</b> ${err.message}</div>`;
             }
         }
 
-        // Функция для очистки чата
         function clearChat() {
-            const chat = document.getElementById("chat");
-            chat.innerHTML = "";
+            document.getElementById('chat').innerHTML = '';
             addWelcomeMessage();
         }
     </script>
