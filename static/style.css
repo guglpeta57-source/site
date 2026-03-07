@@ -1,0 +1,296 @@
+/* Общие стили */
+:root {
+    --primary-color: #4a6fa5;
+    --secondary-color: #166088;
+    --accent-color: #4fc3f7;
+    --background-color: #f8f9fa;
+    --text-color: #333;
+    --light-gray: #e9ecef;
+    --white: #ffffff;
+    --error-color: #ff6b6b;
+    --success-color: #4caf50;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.6;
+}
+
+.container {
+    width: 95%;
+    max-width: 900px;
+    margin: 20px auto;
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: var(--secondary-color);
+    font-weight: 600;
+}
+
+/* Настройки (левая колонка) */
+.role-column {
+    flex: 0 0 28%;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background-color: var(--light-gray);
+    border-radius: 10px;
+    height: fit-content;
+    margin-bottom: 20px;
+}
+
+.role-column h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: var(--secondary-color);
+    font-size: 1.1em;
+}
+
+.select-group {
+    margin-bottom: 15px;
+}
+
+.select-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.select-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: var(--white);
+    font-size: 0.95em;
+    transition: border-color 0.3s;
+}
+
+.select-group select:focus {
+    border-color: var(--accent-color);
+    outline: none;
+}
+
+/* Кнопка очистки истории */
+.role-column button {
+    padding: 10px;
+    background-color: var(--error-color);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.3s;
+    margin-top: 10px;
+}
+
+.role-column button:hover {
+    background-color: #e65151;
+}
+
+/* Чат (правая колонка) */
+.chat-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.chat {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--light-gray);
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    background-color: var(--white);
+    max-height: 60vh;
+}
+
+/* Сообщения в чате */
+.chat div {
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    max-width: 85%;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.chat div b {
+    display: block;
+    margin-bottom: 3px;
+    font-weight: 600;
+    color: var(--secondary-color);
+}
+
+.user-message {
+    background-color: var(--accent-color);
+    color: var(--white);
+    margin-left: auto;
+    text-align: right;
+}
+
+.teacher-message {
+    background-color: var(--light-gray);
+    color: var(--text-color);
+    margin-right: auto;
+}
+
+/* Поле ввода и кнопки */
+.input-area {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+    padding: 10px 0;
+}
+
+.input-area input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.input-area input:focus {
+    border-color: var(--accent-color);
+    outline: none;
+}
+
+.input-area button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.input-area button:first-of-type {
+    background-color: var(--primary-color);
+    color: var(--white);
+}
+
+.input-area button:first-of-type:hover {
+    background-color: var(--secondary-color);
+}
+
+.input-area button:last-child {
+    background-color: var(--error-color);
+    color: var(--white);
+}
+
+.input-area button:last-child:hover {
+    background-color: #e65151;
+}
+
+/* Подсказка о командах */
+.commands-hint {
+    text-align: center;
+    margin: 15px 0;
+    font-size: 0.9em;
+    color: #666;
+    padding: 10px;
+    background-color: var(--light-gray);
+    border-radius: 6px;
+}
+
+.commands-hint code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+    .content-wrapper {
+        flex-direction: column;
+    }
+
+    .role-column {
+        width: 100%;
+        margin-bottom: 15px;
+        border-right: none;
+    }
+
+    .chat {
+        max-height: 50vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        width: 98%;
+        padding: 10px;
+    }
+
+    .input-area {
+        flex-direction: column;
+    }
+
+    .input-area button {
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .chat div {
+        max-width: 95%;
+    }
+}
+
+/* Стили для QR-кода */
+.qr-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 15px;
+    padding: 10px;
+    border-top: 1px solid var(--light-gray);
+}
+
+.qr-code {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.qr-caption {
+    margin: 0;
+    font-size: 0.9em;
+    color: #666;
+    text-align: center;
+}
+
+/* Адаптивность для QR-кода */
+@media (max-width: 768px) {
+    .qr-section {
+        margin-top: 10px;
+    }
+
+    .qr-code {
+        width: 100px;
+        height: 100px;
+    }
+}
