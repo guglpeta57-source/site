@@ -1,11 +1,9 @@
 import os
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, session
+from flask_sqlalchemy import SQLAlchemy
 from gigachat import GigaChat
 from gigachat.models import Chat, Messages, MessagesRole
 from dotenv import load_dotenv
-import psycopg2
-from psycopg2.extras import DictCursor
-from werkzeug.security import generate_password_hash, check_password_hash
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -13,80 +11,82 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "your-secret-key-here")
 
+# Настройка PostgreSQL
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL").replace("postgres://", "postgresql://", 1)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Модель пользователя
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+
+# Создаём таблицы (выполняется один раз)
+with app.app_context():
+    db.create_all()
+
 # Проверяем, что ключ API загружен
 GIGACHAT_CREDENTIALS = os.getenv("GIGACHAT_CREDENTIALS")
 if not GIGACHAT_CREDENTIALS:
     raise ValueError("Не найден ключ API для GigaChat. Установите переменную окружения GIGACHAT_CREDENTIALS.")
-
-# Подключение к PostgreSQL
-def get_db_connection():
-    conn = psycopg2.connect(os.getenv("DATABASE_URL"))
-    return conn
 
 # История сообщений
 conversation_history = {}
 
 @app.route("/")
 def home():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
     return render_template("index.html")
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-
-        conn = get_db_connection()
-        cur = conn.cursor(cursor_factory=DictCursor)
-        cur.execute("SELECT * FROM users WHERE username = %s", (username,))
-        user = cur.fetchone()
-        cur.close()
-        conn.close()
-
-        if user and check_password_hash(user['password'], password):
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            return redirect(url_for('home'))
-        else:
-            return jsonify({"error": "Неверное имя пользователя или пароль"}), 401
-
-    return render_template("login.html")
-
-@app.route("/register", methods=["GET", "POST"])
+@app.route("/register", methods=["POST"])
 def register():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
 
-        hashed_password = generate_password_hash(password)
+    if not username or not password:
+        return jsonify({"error": "Имя пользователя и пароль обязательны"}), 400
 
-        conn = get_db_connection()
-        cur = conn.cursor()
-        try:
-            cur.execute(
-                "INSERT INTO users (username, password) VALUES (%s, %s)",
-                (username, hashed_password)
-            )
-            conn.commit()
-            return jsonify({"success": "Регистрация успешна! Теперь вы можете войти."}), 201
-        except psycopg2.IntegrityError:
-            return jsonify({"error": "Это имя пользователя уже занято"}), 400
-        finally:
-            cur.close()
-            conn.close()
+    if User.query.filter_by(username=username).first():
+        return jsonify({"error": "Это имя пользователя уже занято"}), 400
 
-    return render_template("register.html")
+    new_user = User(username=username, password=password)
+    db.session.add(new_user)
+    db.session.commit()
 
-@app.route("/logout")
+    return jsonify({"success": True})
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+
+    user = User.query.filter_by(username=username, password=password).first()
+    if not user:
+        return jsonify({"error": "Неверное имя пользователя или пароль"}), 401
+
+    session["user_id"] = user.id
+    session["username"] = user.username
+
+    return jsonify({"success": True, "username": user.username})
+
+@app.route("/logout", methods=["POST"])
 def logout():
-    session.clear()
-    return redirect(url_for('login'))
+    session.pop("user_id", None)
+    session.pop("username", None)
+    return jsonify({"success": True})
+
+@app.route("/check_auth")
+def check_auth():
+    if "user_id" in session:
+        return jsonify({"authenticated": True, "username": session["username"]})
+    else:
+        return jsonify({"authenticated": False})
 
 @app.route("/ask", methods=["POST"])
 def ask_gigachat():
-    if 'user_id' not in session:
+    if "user_id" not in session:
         return jsonify({"error": "Требуется авторизация"}), 401
 
     data = request.json
@@ -110,8 +110,8 @@ def ask_gigachat():
         })
 
     elif user_message.startswith("/clear"):
-        if session['user_id'] in conversation_history:
-            conversation_history[session['user_id']] = []
+        if session["user_id"] in conversation_history:
+            conversation_history[session["user_id"]] = []
         return jsonify({"answer": "🧹 История сообщений очищена!"})
 
     elif user_message.startswith("/subject"):
@@ -148,8 +148,8 @@ def ask_gigachat():
                 )
             ]
 
-            if session['user_id'] in conversation_history:
-                for msg in conversation_history[session['user_id']]:
+            if session["user_id"] in conversation_history:
+                for msg in conversation_history[session["user_id"]]:
                     messages.append(msg)
 
             messages.append(
@@ -162,16 +162,16 @@ def ask_gigachat():
             payload = Chat(messages=messages)
             response = giga.chat(payload)
 
-            if session['user_id'] not in conversation_history:
-                conversation_history[session['user_id']] = []
+            if session["user_id"] not in conversation_history:
+                conversation_history[session["user_id"]] = []
 
-            conversation_history[session['user_id']].append(
+            conversation_history[session["user_id"]].append(
                 Messages(
                     role=MessagesRole.USER,
                     content=user_message
                 )
             )
-            conversation_history[session['user_id']].append(
+            conversation_history[session["user_id"]].append(
                 Messages(
                     role=MessagesRole.ASSISTANT,
                     content=response.choices[0].message.content
@@ -184,28 +184,9 @@ def ask_gigachat():
 
 @app.route("/clear_history", methods=["POST"])
 def clear_history():
-    if 'user_id' not in session:
-        return jsonify({"error": "Требуется авторизация"}), 401
-
-    if session['user_id'] in conversation_history:
-        conversation_history[session['user_id']] = []
+    if "user_id" in session and session["user_id"] in conversation_history:
+        conversation_history[session["user_id"]] = []
     return jsonify({"status": "ok"})
-
-# Инициализация базы данных
-@app.before_first_request
-def init_db():
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username VARCHAR(50) UNIQUE NOT NULL,
-            password VARCHAR(200) NOT NULL
-        )
-    """)
-    conn.commit()
-    cur.close()
-    conn.close()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
