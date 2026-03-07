@@ -470,3 +470,26 @@ h1 {
 }
 
 /* Кнопка выхода в профиле (добавим позже) */
+
+
+/* Кнопка выхода в профиле */
+.btn-logout {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--error-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin: 10px 0 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-logout:hover {
+    background-color: #d32f2f;
+}
