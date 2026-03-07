@@ -12,31 +12,29 @@
             onload="renderMathInElement(document.body);"></script>
 </head>
 <body>
-    <!-- Модальное окно для входа/регистрации -->
+    <!-- Единое модальное окно с табами для входа/регистрации -->
     <div id="authModal" class="modal">
         <div class="modal-content">
-            <h2 id="authTitle">Вход</h2>
-            <input type="text" id="usernameInput" placeholder="Имя пользователя">
-            <input type="password" id="passwordInput" placeholder="Пароль">
-            <div class="auth-buttons">
-                <button onclick="login()">Войти</button>
-                <button onclick="showRegister()">Регистрация</button>
+            <div class="modal-tabs">
+                <button class="tab-btn active" id="loginTabBtn" onclick="switchAuthTab('login')">Вход</button>
+                <button class="tab-btn" id="registerTabBtn" onclick="switchAuthTab('register')">Регистрация</button>
             </div>
-            <button class="secondary" onclick="closeAuthModal()">Отмена</button>
-        </div>
-    </div>
 
-    <!-- Модальное окно для регистрации -->
-    <div id="registerModal" class="modal">
-        <div class="modal-content">
-            <h2>Регистрация</h2>
-            <input type="text" id="newUsernameInput" placeholder="Имя пользователя">
-            <input type="password" id="newPasswordInput" placeholder="Пароль">
-            <div class="auth-buttons">
-                <button onclick="register()">Зарегистрироваться</button>
-                <button onclick="showLogin()">Вход</button>
+            <!-- Форма входа -->
+            <div id="loginForm" class="auth-form active">
+                <input type="text" id="usernameInput" placeholder="Имя пользователя">
+                <input type="password" id="passwordInput" placeholder="Пароль">
+                <button class="auth-submit" onclick="login()">Войти</button>
             </div>
-            <button class="secondary" onclick="closeAuthModal()">Отмена</button>
+
+            <!-- Форма регистрации -->
+            <div id="registerForm" class="auth-form">
+                <input type="text" id="newUsernameInput" placeholder="Имя пользователя">
+                <input type="password" id="newPasswordInput" placeholder="Пароль">
+                <button class="auth-submit" onclick="register()">Зарегистрироваться</button>
+            </div>
+
+            <button class="modal-close" onclick="closeAuthModal()">Закрыть</button>
         </div>
     </div>
 
@@ -171,26 +169,39 @@
 
         // Показываем модальное окно авторизации
         function showAuthModal() {
-            const modal = document.getElementById('authModal');
-            modal.style.display = 'block';
-        }
-
-        // Показываем модальное окно регистрации
-        function showRegister() {
-            document.getElementById('authModal').style.display = 'none';
-            document.getElementById('registerModal').style.display = 'block';
-        }
-
-        // Показываем модальное окно входа
-        function showLogin() {
-            document.getElementById('registerModal').style.display = 'none';
             document.getElementById('authModal').style.display = 'block';
+            // По умолчанию показываем вкладку "Вход"
+            switchAuthTab('login');
+        }
+
+        // Переключение между вкладками "Вход" и "Регистрация"
+        function switchAuthTab(tab) {
+            const loginTab = document.getElementById('loginTabBtn');
+            const registerTab = document.getElementById('registerTabBtn');
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+
+            if (tab === 'login') {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.classList.add('active');
+                registerForm.classList.remove('active');
+            } else {
+                registerTab.classList.add('active');
+                loginTab.classList.remove('active');
+                registerForm.classList.add('active');
+                loginForm.classList.remove('active');
+            }
         }
 
         // Закрываем модальное окно
         function closeAuthModal() {
             document.getElementById('authModal').style.display = 'none';
-            document.getElementById('registerModal').style.display = 'none';
+            // Очистить поля
+            document.getElementById('usernameInput').value = '';
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('newUsernameInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
         }
 
         // Регистрация нового пользователя
@@ -214,7 +225,7 @@
                     alert(data.error);
                 } else {
                     alert('Регистрация успешна! Теперь вы можете войти.');
-                    showLogin();
+                    switchAuthTab('login'); // Переключаем на вкладку входа
                 }
             })
             .catch(error => {
