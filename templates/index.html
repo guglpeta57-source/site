@@ -12,11 +12,39 @@
             onload="renderMathInElement(document.body);"></script>
 </head>
 <body>
+    <!-- Модальное окно для входа/регистрации -->
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <h2 id="authTitle">Вход</h2>
+            <input type="text" id="usernameInput" placeholder="Имя пользователя">
+            <input type="password" id="passwordInput" placeholder="Пароль">
+            <div class="auth-buttons">
+                <button onclick="login()">Войти</button>
+                <button onclick="showRegister()">Регистрация</button>
+            </div>
+            <button class="secondary" onclick="closeAuthModal()">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для регистрации -->
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <h2>Регистрация</h2>
+            <input type="text" id="newUsernameInput" placeholder="Имя пользователя">
+            <input type="password" id="newPasswordInput" placeholder="Пароль">
+            <div class="auth-buttons">
+                <button onclick="register()">Зарегистрироваться</button>
+                <button onclick="showLogin()">Вход</button>
+            </div>
+            <button class="secondary" onclick="closeAuthModal()">Отмена</button>
+        </div>
+    </div>
+
     <div class="container">
         <!-- Информация о пользователе -->
-        <div class="user-info">
-            <span id="usernameDisplay">Вы вошли как: </span>
-            <a href="/logout" style="color: #ff6b6b; text-decoration: none;">Выйти</a>
+        <div class="user-info" id="userInfo" style="display: none;">
+            <span id="usernameDisplay"></span>
+            <button onclick="logout()">Выйти</button>
         </div>
 
         <h1>Учебный бот</h1>
@@ -25,7 +53,6 @@
             <!-- Колонка с настройками -->
             <div class="role-column">
                 <h3>Настройки</h3>
-
                 <!-- Выбор предмета -->
                 <div class="select-group">
                     <label for="subject">Предмет:</label>
@@ -118,6 +145,128 @@
 
     <!-- Скрипты -->
     <script>
+        // Проверяем авторизацию при загрузке страницы
+        window.onload = function() {
+            checkAuth();
+        };
+
+        // Проверяем, авторизован ли пользователь
+        function checkAuth() {
+            fetch("/check_auth")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.authenticated) {
+                        document.getElementById('userInfo').style.display = 'flex';
+                        document.getElementById('usernameDisplay').textContent = `Вы вошли как: ${data.username}`;
+                        addWelcomeMessage();
+                    } else {
+                        showAuthModal();
+                    }
+                })
+                .catch(error => {
+                    console.error("Ошибка проверки авторизации:", error);
+                    showAuthModal();
+                });
+        }
+
+        // Показываем модальное окно авторизации
+        function showAuthModal() {
+            const modal = document.getElementById('authModal');
+            modal.style.display = 'block';
+        }
+
+        // Показываем модальное окно регистрации
+        function showRegister() {
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('registerModal').style.display = 'block';
+        }
+
+        // Показываем модальное окно входа
+        function showLogin() {
+            document.getElementById('registerModal').style.display = 'none';
+            document.getElementById('authModal').style.display = 'block';
+        }
+
+        // Закрываем модальное окно
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('registerModal').style.display = 'none';
+        }
+
+        // Регистрация нового пользователя
+        function register() {
+            const username = document.getElementById('newUsernameInput').value.trim();
+            const password = document.getElementById('newPasswordInput').value.trim();
+
+            if (!username || !password) {
+                alert('Пожалуйста, заполните все поля.');
+                return;
+            }
+
+            fetch("/register", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('Регистрация успешна! Теперь вы можете войти.');
+                    showLogin();
+                }
+            })
+            .catch(error => {
+                console.error("Ошибка регистрации:", error);
+                alert("Произошла ошибка при регистрации.");
+            });
+        }
+
+        // Вход пользователя
+        function login() {
+            const username = document.getElementById('usernameInput').value.trim();
+            const password = document.getElementById('passwordInput').value.trim();
+
+            if (!username || !password) {
+                alert('Пожалуйста, заполните все поля.');
+                return;
+            }
+
+            fetch("/login", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ username, password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    document.getElementById('userInfo').style.display = 'flex';
+                    document.getElementById('usernameDisplay').textContent = `Вы вошли как: ${data.username}`;
+                    closeAuthModal();
+                    addWelcomeMessage();
+                }
+            })
+            .catch(error => {
+                console.error("Ошибка входа:", error);
+                alert("Произошла ошибка при входе.");
+            });
+        }
+
+        // Выход из аккаунта
+        function logout() {
+            fetch("/logout", { method: "POST" })
+                .then(() => {
+                    document.getElementById('userInfo').style.display = 'none';
+                    showAuthModal();
+                })
+                .catch(error => {
+                    console.error("Ошибка выхода:", error);
+                });
+        }
+
         // Функция для добавления приветственного сообщения
         function addWelcomeMessage() {
             const chat = document.getElementById("chat");
@@ -131,9 +280,6 @@
             chat.scrollTop = chat.scrollHeight;
             renderMathInElement(chat);
         }
-
-        // Вызываем функцию при загрузке страницы
-        window.onload = addWelcomeMessage;
 
         // Обновляем роль бота при изменении предмета/класса
         function updateBotRole() {
