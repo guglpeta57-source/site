@@ -10,9 +10,11 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.4/dist/contrib/auto-render.min.js"
             onload="renderMathInElement(document.body);"></script>
+    <!-- Font Awesome для иконок -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <!-- Единое модальное окно с табами для входа/регистрации -->
+    <!-- Модальное окно для входа/регистрации (с табами) -->
     <div id="authModal" class="modal">
         <div class="modal-content">
             <div class="modal-tabs">
@@ -38,11 +40,32 @@
         </div>
     </div>
 
+    <!-- Модальное окно профиля -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <h2>Профиль</h2>
+            <div class="profile-info">
+                <p><strong>ID:</strong> <span id="profileId"></span></p>
+                <p><strong>Имя пользователя:</strong> <span id="profileUsername"></span></p>
+                <p><strong>Дата регистрации:</strong> <span id="profileCreatedAt"></span></p>
+            </div>
+            <h3>Смена пароля</h3>
+            <div class="auth-form">
+                <input type="password" id="oldPasswordInput" placeholder="Старый пароль">
+                <input type="password" id="newPasswordInput" placeholder="Новый пароль">
+                <input type="password" id="confirmPasswordInput" placeholder="Подтвердите новый пароль">
+                <button class="auth-submit" onclick="changePassword()">Изменить пароль</button>
+            </div>
+            <button class="modal-close" onclick="closeProfileModal()">Закрыть</button>
+        </div>
+    </div>
+
     <div class="container">
-        <!-- Информация о пользователе -->
-        <div class="user-info" id="userInfo" style="display: none;">
-            <span id="usernameDisplay"></span>
-            <button onclick="logout()">Выйти</button>
+        <!-- Верхняя панель с пользователем -->
+        <div class="top-bar">
+            <div class="user-button" id="userButton">
+                <!-- Содержимое будет меняться через JS -->
+            </div>
         </div>
 
         <h1>Учебный бот</h1>
@@ -154,23 +177,102 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.authenticated) {
-                        document.getElementById('userInfo').style.display = 'flex';
-                        document.getElementById('usernameDisplay').textContent = `Вы вошли как: ${data.username}`;
+                        showUserButton(data.username);
                         addWelcomeMessage();
                     } else {
-                        showAuthModal();
+                        showGuestButton();
                     }
                 })
                 .catch(error => {
                     console.error("Ошибка проверки авторизации:", error);
-                    showAuthModal();
+                    showGuestButton();
                 });
+        }
+
+        // Отображаем кнопку для гостя
+        function showGuestButton() {
+            const userButton = document.getElementById('userButton');
+            userButton.innerHTML = '<button onclick="showAuthModal()" class="btn-guest"><i class="fas fa-sign-in-alt"></i> Вход / Регистрация</button>';
+        }
+
+        // Отображаем кнопку для авторизованного пользователя
+        function showUserButton(username) {
+            const userButton = document.getElementById('userButton');
+            userButton.innerHTML = `
+                <button onclick="openProfile()" class="btn-user">
+                    <i class="fas fa-user-circle"></i> ${username}
+                </button>
+            `;
+        }
+
+        // Открыть профиль
+        function openProfile() {
+            fetch("/profile")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
+                    }
+                    document.getElementById('profileId').textContent = data.id;
+                    document.getElementById('profileUsername').textContent = data.username;
+                    // Форматируем дату
+                    const date = new Date(data.created_at);
+                    document.getElementById('profileCreatedAt').textContent = date.toLocaleString('ru-RU');
+                    document.getElementById('profileModal').style.display = 'block';
+                })
+                .catch(error => {
+                    console.error("Ошибка загрузки профиля:", error);
+                });
+        }
+
+        // Закрыть профиль
+        function closeProfileModal() {
+            document.getElementById('profileModal').style.display = 'none';
+            // Очистить поля паролей
+            document.getElementById('oldPasswordInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('confirmPasswordInput').value = '';
+        }
+
+        // Смена пароля
+        function changePassword() {
+            const oldPassword = document.getElementById('oldPasswordInput').value.trim();
+            const newPassword = document.getElementById('newPasswordInput').value.trim();
+            const confirmPassword = document.getElementById('confirmPasswordInput').value.trim();
+
+            if (!oldPassword || !newPassword || !confirmPassword) {
+                alert('Пожалуйста, заполните все поля.');
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                alert('Новый пароль и подтверждение не совпадают.');
+                return;
+            }
+
+            fetch("/change_password", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert('Пароль успешно изменён!');
+                    closeProfileModal();
+                }
+            })
+            .catch(error => {
+                console.error("Ошибка смены пароля:", error);
+                alert("Произошла ошибка при смене пароля.");
+            });
         }
 
         // Показываем модальное окно авторизации
         function showAuthModal() {
             document.getElementById('authModal').style.display = 'block';
-            // По умолчанию показываем вкладку "Вход"
             switchAuthTab('login');
         }
 
@@ -194,7 +296,7 @@
             }
         }
 
-        // Закрываем модальное окно
+        // Закрываем модальное окно авторизации
         function closeAuthModal() {
             document.getElementById('authModal').style.display = 'none';
             // Очистить поля
@@ -225,7 +327,7 @@
                     alert(data.error);
                 } else {
                     alert('Регистрация успешна! Теперь вы можете войти.');
-                    switchAuthTab('login'); // Переключаем на вкладку входа
+                    switchAuthTab('login');
                 }
             })
             .catch(error => {
@@ -254,9 +356,8 @@
                 if (data.error) {
                     alert(data.error);
                 } else {
-                    document.getElementById('userInfo').style.display = 'flex';
-                    document.getElementById('usernameDisplay').textContent = `Вы вошли как: ${data.username}`;
                     closeAuthModal();
+                    showUserButton(data.username);
                     addWelcomeMessage();
                 }
             })
@@ -270,13 +371,16 @@
         function logout() {
             fetch("/logout", { method: "POST" })
                 .then(() => {
-                    document.getElementById('userInfo').style.display = 'none';
-                    showAuthModal();
+                    showGuestButton();
+                    closeProfileModal();
                 })
                 .catch(error => {
                     console.error("Ошибка выхода:", error);
                 });
         }
+
+        // Добавляем кнопку выхода в профиль (опционально)
+        // Можно добавить отдельную кнопку в модальном окне профиля
 
         // Функция для добавления приветственного сообщения
         function addWelcomeMessage() {
